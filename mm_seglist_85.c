@@ -48,7 +48,6 @@ team_t team = {
 #define CHUNKSIZE (1<<12)
 #define INITCHUNKSIZE (1<<6)
 #define LISTLIMIT 20
-#define REALLOC_BUFFER (1<<7)
 
 
 // calculate max value
@@ -137,7 +136,6 @@ static void *extend_heap(size_t words){
     PUT(HDRP(bp),PACK(size,0));
     PUT(FTRP(bp),PACK(size,0));
     PUT(HDRP(NEXT_BLKP(bp)),PACK(0,1));
-    insert_node(bp, size);
 
     return coalesce(bp);
 }
@@ -259,10 +257,10 @@ static void *coalesce(void *bp){
     size_t size = GET_SIZE(HDRP(bp));
 
     if(prev_alloc && next_alloc){
+        insert_node(bp,size);
         return bp;
     }
     else if (prev_alloc && !next_alloc){
-        delete_node(bp);
         delete_node(NEXT_BLKP(bp));
         
         size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
@@ -270,7 +268,6 @@ static void *coalesce(void *bp){
         PUT(FTRP(bp),PACK(size,0));
     }
     else if (!prev_alloc && next_alloc){
-        delete_node(bp);
         delete_node(PREV_BLKP(bp));
         
         size += GET_SIZE(HDRP(PREV_BLKP(bp)));
@@ -279,7 +276,6 @@ static void *coalesce(void *bp){
         bp = PREV_BLKP(bp);
     }
     else{
-        delete_node(bp);
         delete_node(PREV_BLKP(bp));
         delete_node(NEXT_BLKP(bp));
         
@@ -346,8 +342,6 @@ void mm_free(void *bp)
 
     PUT(HDRP(bp),PACK(size,0));
     PUT(FTRP(bp),PACK(size,0));
-    
-    insert_node(bp,size);
 
     coalesce(bp);
 }
